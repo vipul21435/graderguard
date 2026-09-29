@@ -1,0 +1,16 @@
+# Sample task with a weak grader: it only checks that the agent's program exits 0.
+name = "normalize-names"
+description = "Normalize a list of names; the grader only checks the exit status."
+
+[agent]
+programs = ["normalize.py"]
+outputs = ["out/names.txt"]
+tests_visible = false
+
+[solution]
+command = 'cp "$GG_SOLUTION_DIR/normalize.py" normalize.py && python normalize.py'
+timeout_sec = 30
+
+[grader]
+command = "python -m pytest -q -p no:cacheprovider tests"
+timeout_sec = 60

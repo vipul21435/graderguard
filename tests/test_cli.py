@@ -1,6 +1,8 @@
+import json
 import runpy
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
@@ -48,3 +50,39 @@ def test_module_entry_point_in_process(
         runpy.run_module("graderguard", run_name="__main__")
     assert exc.value.code == 0
     assert capsys.readouterr().out.strip() == f"graderguard {__version__}"
+
+
+EXAMPLES = Path(__file__).resolve().parents[1] / "examples" / "tasks"
+
+
+def test_audit_writes_markdown_and_exits_one_on_holes(tmp_path: Path) -> None:
+    out = tmp_path / "reports" / "r.md"
+    result = runner.invoke(
+        app, ["audit", str(EXAMPLES / "hardcodable"), "--out", str(out), "-c", "empty-output"]
+    )
+    assert result.exit_code == 0
+    assert out.read_text().startswith("# GraderGuard audit: sensor-means")
+    assert "sensor-means: NO HOLES" in result.stderr
+    assert "baseline reference: pass" in result.stderr
+    assert result.stdout == ""
+
+
+def test_audit_json_to_stdout_quiet(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        ["audit", str(EXAMPLES / "exit-code-only"), "-f", "json", "-q", "-c", "exit-zero-stub"],
+    )
+    assert result.exit_code == 1
+    data = json.loads(result.stdout)
+    assert data["verdict"] == "holes_found"
+    assert "auditing" not in result.stderr
+    assert "HOLES FOUND" in result.stderr
+
+
+def test_audit_rejects_unknown_cheat_and_bad_task(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["audit", str(EXAMPLES / "robust"), "--cheat", "nope"])
+    assert result.exit_code == 2
+    assert "unknown cheat(s): nope" in result.stderr
+    result = runner.invoke(app, ["audit", str(tmp_path)])
+    assert result.exit_code == 2
+    assert "missing task.toml" in result.stderr

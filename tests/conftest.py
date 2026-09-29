@@ -8,8 +8,12 @@ from pathlib import Path
 
 import pytest
 
+from graderguard.audit import AuditReport, run_audit
+from graderguard.task import load_task
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = REPO_ROOT / "examples" / "tasks"
+SAMPLES = ("exit-code-only", "hardcodable", "robust")
 
 TaskFactory = Callable[..., Path]
 
@@ -66,3 +70,9 @@ def make_task(tmp_path: Path) -> TaskFactory:
         return root
 
     return build
+
+
+@pytest.fixture(scope="session")
+def sample_reports() -> dict[str, AuditReport]:
+    """Audit the three bundled sample tasks once per test session."""
+    return {name: run_audit(load_task(EXAMPLES / name)) for name in SAMPLES}
