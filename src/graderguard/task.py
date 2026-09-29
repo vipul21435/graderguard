@@ -86,8 +86,14 @@ class Task:
 
     @property
     def uses_pytest(self) -> bool:
-        """True when the grader command runs pytest (directly or as a module)."""
-        return "pytest" in self.grader_command
+        """True when the grader probably runs pytest.
+
+        Either the command names pytest, or it is a wrapper (such as ``sh tests/run.sh``) and
+        ``tests/`` holds pytest-style ``test_*.py`` or ``*_test.py`` files.
+        """
+        if "pytest" in self.grader_command:
+            return True
+        return any(self.tests_dir.rglob("test_*.py")) or any(self.tests_dir.rglob("*_test.py"))
 
 
 def load_task(path: Path | str) -> Task:

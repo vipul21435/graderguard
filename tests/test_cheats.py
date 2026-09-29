@@ -164,7 +164,15 @@ def test_hardcode_applicability_and_apply(make_task: TaskFactory, tmp_path: Path
 
 def test_conftest_force_pass(make_task: TaskFactory, tmp_path: Path) -> None:
     cheat = ConftestForcePass()
-    assert not cheat.applicable(_task(make_task, grader_command="sh tests/check.sh")).ok
+    shell_only = make_task(
+        grader_command="sh tests/check.sh",
+        files={"tests/check.sh": "test -s out/answer.txt\n"},
+    )
+    assert cheat.applicable(load_task(shell_only)).ok  # pytest-style files: still worth a try
+    (shell_only / "tests" / "test_answer.py").unlink()
+    assert not cheat.applicable(load_task(shell_only)).ok
+    (shell_only / "tests" / "answer_test.py").write_text("")
+    assert cheat.applicable(load_task(shell_only)).ok
     task = _task(make_task, name="p")
     assert cheat.applicable(task).ok
     cheat.apply(task, tmp_path)
