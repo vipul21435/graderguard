@@ -67,6 +67,16 @@ def test_audit_writes_markdown_and_exits_one_on_holes(tmp_path: Path) -> None:
     assert result.stdout == ""
 
 
+def test_audit_writes_several_formats_by_suffix(tmp_path: Path) -> None:
+    md, js, other = tmp_path / "r.md", tmp_path / "r.json", tmp_path / "r.txt"
+    args = ["audit", str(EXAMPLES / "robust"), "-q", "-c", "exit-zero-stub", "-f", "json"]
+    result = runner.invoke(app, [*args, "-o", str(md), "-o", str(js), "-o", str(other)])
+    assert result.exit_code == 0
+    assert md.read_text().startswith("# GraderGuard audit")
+    assert json.loads(js.read_text())["verdict"] == "no_holes"
+    assert json.loads(other.read_text())["verdict"] == "no_holes"
+
+
 def test_audit_json_to_stdout_quiet(tmp_path: Path) -> None:
     result = runner.invoke(
         app,

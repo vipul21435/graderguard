@@ -19,9 +19,16 @@ COPY pyproject.toml uv.lock README.md LICENSE ./
 RUN uv sync --locked --no-dev --no-install-project
 COPY src ./src
 RUN uv sync --locked --no-dev
+# Sample tasks and the demo script, so `docker run ... demo` works offline.
+COPY examples ./examples
+COPY scripts ./scripts
 
-RUN useradd --create-home --uid 10001 guard
+# Audits run as an unprivileged user from a writable work directory; /app stays root-owned.
+RUN useradd --create-home --uid 10001 guard \
+    && mkdir /work \
+    && chown guard:guard /work
 USER guard
+WORKDIR /work
 ENV PATH=/app/.venv/bin:$PATH
 
 ENTRYPOINT ["graderguard"]

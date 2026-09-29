@@ -9,7 +9,7 @@ from typing import Annotated
 import typer
 
 from graderguard import __version__
-from graderguard.audit import run_audit
+from graderguard.audit import AuditReport, run_audit
 from graderguard.cheats import Cheat, all_cheats
 from graderguard.report import render_json, render_markdown, summary_line
 from graderguard.task import TaskError, load_task
@@ -63,8 +63,13 @@ def audit_cmd(
         ReportFormat, typer.Option("--format", "-f", help="Report format.")
     ] = ReportFormat.MD,
     out: Annotated[
-        Path | None,
-        typer.Option("--out", "-o", help="Write the report here instead of stdout."),
+        list[Path] | None,
+        typer.Option(
+            "--out",
+            "-o",
+            help="Write the report here instead of stdout (repeatable; a .json or .md "
+            "suffix picks the format, anything else uses --format).",
+        ),
     ] = None,
     cheat: Annotated[
         list[str] | None,
@@ -93,14 +98,18 @@ def audit_cmd(
     if not quiet:
         typer.echo(f"auditing {task.name} ({task_dir})", err=True)
     report = run_audit(task, cheats, progress)
-    text = render_json(report) if fmt is ReportFormat.JSON else render_markdown(report)
-    if out is None:
-        typer.echo(text, nl=False)
-    else:
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(text, encoding="utf-8")
+    if not out:
+        typer.echo(_render(report, fmt), nl=False)
+    for path in out or []:
+        path_fmt = {".json": ReportFormat.JSON, ".md": ReportFormat.MD}.get(path.suffix, fmt)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_render(report, path_fmt), encoding="utf-8")
     typer.echo(summary_line(report), err=True)
     raise typer.Exit(report.exit_code)
+
+
+def _render(report: AuditReport, fmt: ReportFormat) -> str:
+    return render_json(report) if fmt is ReportFormat.JSON else render_markdown(report)
 
 
 def _select(names: list[str]) -> list[Cheat]:

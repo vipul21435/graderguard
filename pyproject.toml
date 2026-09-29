@@ -8,6 +8,9 @@ license-files = ["LICENSE"]
 authors = [{ name = "Vipul Raj Jha" }]
 requires-python = ">=3.12"
 dependencies = [
+    # pytest is a runtime dependency: in the local sandbox, task graders run with the
+    # interpreter GraderGuard runs under, so `python -m pytest` must work there.
+    "pytest>=8",
     "typer>=0.12",
 ]
 
@@ -25,7 +28,6 @@ packages = ["src/graderguard"]
 dev = [
     "mypy>=2.3.1",
     "pre-commit>=4.6.2",
-    "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.16.9",
 ]

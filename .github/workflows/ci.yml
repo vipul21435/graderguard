@@ -30,9 +30,11 @@ jobs:
         run: make typecheck
       - name: Tests with coverage gate
         run: make cov
+      - name: Demo on the bundled sample tasks
+        run: make demo
 
   docker:
-    name: docker build and smoke run
+    name: docker build and demo
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,3 +42,5 @@ jobs:
         run: docker build -t graderguard:ci .
       - name: Smoke run
         run: docker run --rm graderguard:ci --version
+      - name: Demo inside the image without network
+        run: docker run --rm --network=none --entrypoint sh graderguard:ci /app/scripts/demo.sh
